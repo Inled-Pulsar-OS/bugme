@@ -70,19 +70,26 @@ function severityOf(issue) {
     ? { label: key, color: severityMeta[key].color, bg: severityMeta[key].bg }
     : { label: "Unclassified", color: "#6e6e73", bg: "#f5f5f7" };
 }
-// Friendly version string: prefer the exact build (About Pulsar OS), then edition+version from the dropdowns.
+// Friendly version string: prefer the exact build (About Pulsar OS), then the dropdowns (edition + version + image variant).
 function versionOf(issue) {
   const detail = field(issue.body, "Versión exacta / build", "Exact version / build");
-  if (detail) return detail;
   const edition = field(issue.body, "Edition");
   const version = field(issue.body, "Versión de Pulsar OS", "Pulsar OS version");
   const image = field(issue.body, "Image");
-  const parts = [edition && edition !== "Other / older edition" ? edition : "", version && version !== "Other / unknown" ? version : ""].filter(Boolean);
-  let out = parts.join(" ") || "unknown";
   const iso = image?.match(/arch|debian/i)?.[0];
   const boot = image?.match(/refind|grub/i)?.[0];
+  if (detail && detail !== "_No response_") {
+    let out = detail;
+    if (iso && boot) out += ` (${iso}-${boot})`;
+    return out;
+  }
+  const parts = [
+    edition && !edition.startsWith("Other") ? edition : "",
+    version && !version.startsWith("Other") ? version : "",
+  ].filter(Boolean);
+  let out = parts.join(" ") || "unknown";
   if (iso && boot) out += ` (${iso}-${boot})`;
-  else if (image && image !== "Other / built from source") out += ` (${image})`;
+  else if (image && !image.startsWith("Other")) out += ` (${image})`;
   return out;
 }
 function tagsOf(issue) {
@@ -123,7 +130,9 @@ const CSS = `
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth}
   body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",Helvetica,Arial,sans-serif;
-       color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;line-height:1.47}
+       color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;line-height:1.47;
+       min-height:100dvh;display:flex;flex-direction:column}
+  main{flex:1}
   a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
   .wrap{max-width:980px;margin:0 auto;padding:0 22px}
   nav{position:sticky;top:0;background:rgba(255,255,255,.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
@@ -184,17 +193,18 @@ const CSS = `
   .bug-body{background:var(--tint);border-radius:var(--radius);padding:26px 28px;margin-top:26px;font-size:15px}
   .thread h3{font-size:22px;font-weight:700;margin:44px 0 4px}
   .empty{text-align:center;color:var(--muted);padding:40px 0;font-size:17px}
-  footer{border-top:1px solid var(--border);padding:34px 0;color:var(--muted);font-size:13px;text-align:center;margin-top:40px}
+  footer{border-top:1px solid var(--border);padding:34px 0;color:var(--muted);font-size:13px;text-align:center;margin-top:auto}
   @media (max-width:600px){.hero{padding:70px 0 50px}}
 `;
 
 const navHTML = () => `
 <nav><div class="wrap">
-  <a class="brand" href="index.html">bug<span>me</span></a>
+  <a class="brand" href="/">bug<span>me</span></a>
   <a class="btn secondary" style="min-height:32px;padding:6px 16px;font-size:14px" href="${REPO_URL}/issues/new?template=bug_report.yml">Report a bug</a>
 </div></nav>`;
 
 const footerHTML = `
+</main>
 <footer>
   bugme · bug tracker for Pulsar OS · auto-generated from GitHub Issues ·
   <a href="${REPO_URL}">GitHub</a> · <a href="${ISOS_URL}">official versions</a>
@@ -285,7 +295,7 @@ const issueCard = (i) => {
     <div class="meta">
       by ${searchable("u", i.user.login)}
       · ${searchable("d", fmtDate(i.created_at))} · Version: ${searchable("v", i.version)} · ${i.tags.map((t) => searchable("label", t)).join(" ")}
-      · <a href="issues/${i.number}.html">${cs.length} comment${cs.length === 1 ? "" : "s"} →</a>
+      · <a href="/issues/${i.number}.html">${cs.length} comment${cs.length === 1 ? "" : "s"} →</a>
     </div>
   </article>`;
 };
@@ -304,6 +314,7 @@ const indexPage = `<!DOCTYPE html>
 <style>${CSS}</style>
 </head>
 <body>
+<main>
 ${navHTML()}
 <header class="hero">
   <h1>bug<span>me</span></h1>
@@ -360,9 +371,10 @@ const issuePage = (i) => {
 <style>${CSS}</style>
 </head>
 <body>
+<main>
 ${navHTML()}
 <div class="wrap" style="padding-top:40px">
-  <div class="crumb"><a href="index.html">← All bugs</a></div>
+  <div class="crumb"><a href="/">← All bugs</a></div>
   <div class="bug-head">
     <h2>#${i.number} · ${esc(i.title)}</h2>
     <div class="badges">
