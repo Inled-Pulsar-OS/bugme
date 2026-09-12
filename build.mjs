@@ -159,6 +159,17 @@ const CSS = `
   .tag{border:1px solid var(--border);background:#fff;border-radius:980px;padding:6px 14px;font-size:13px;color:var(--ink);cursor:pointer;user-select:none;font-family:inherit}
   .tag:hover{border-color:var(--blue);color:var(--blue)}
   .tag.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .tag.group{background:var(--tint);font-weight:600}
+  .banners{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:30px}
+  .banner{display:flex;align-items:center;gap:10px;border:1px solid var(--border);background:var(--tint);border-radius:14px;
+    padding:12px 20px;font-size:14px;color:var(--ink);transition:border-color .15s, background .15s;position:relative;z-index:2}
+  .banner:hover{border-color:var(--blue);text-decoration:none;background:#fff}
+  .banner svg{color:var(--blue);flex:none}
+  .banner b{font-weight:600}
+  .back{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:#fff;border-radius:980px;
+    padding:10px 20px;font-size:15px;font-weight:600;color:var(--ink);transition:border-color .15s,color .15s}
+  .back:hover{border-color:var(--blue);color:var(--blue);text-decoration:none}
+  .back svg{flex:none}
   .issue{background:var(--tint);border-radius:var(--radius);padding:24px 26px;margin-bottom:14px;transition:transform .15s;cursor:pointer;position:relative}
   .issue:hover{transform:translateY(-2px)}
   .issue .cardlink{position:absolute;inset:0;z-index:1}
@@ -183,7 +194,8 @@ const CSS = `
   .comment img{width:26px;height:26px;border-radius:50%}
   .comment .who b{font-size:13px}.comment .who time{color:var(--muted);font-size:12px}
   .comment p{white-space:pre-wrap}
-  .crumb{font-size:13px;color:var(--muted);margin-bottom:14px}
+  .crumb{margin-bottom:20px}
+  .crumb .back{font-size:14px;padding:9px 18px}
   .bug-head h2{font-size:clamp(26px,3.4vw,36px);font-weight:700;text-align:left;letter-spacing:-.01em}
   .bug-head .badges{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
   .bug-meta{color:var(--muted);font-size:14px;margin-top:14px}
@@ -196,7 +208,7 @@ const CSS = `
   @media (max-width:640px){
     nav .wrap{height:auto;padding:10px 0;flex-wrap:wrap;gap:10px;justify-content:center}
     nav .wrap > div{width:100%;justify-content:center}
-    .searchbar{flex:1 1 100%;order:3;margin:0}
+    .searchbar{flex:1 1 100%;order:3;margin:0 16px}
     nav .btn{margin:0}
     .wrap{padding:0 16px}
     section{padding:44px 0}
@@ -210,8 +222,15 @@ const CSS = `
     .bug-body{padding:20px}
     .bug-head h2{font-size:24px}
     .thread h3{font-size:19px}
+    .banners{flex-direction:column;align-items:stretch}
+    .banner{justify-content:flex-start}
+    .back{padding:12px 22px;font-size:16px}
   }
 `;
+
+const ghIcon = `<svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>`;
+const chatIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+const arrowLeft = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>`;
 
 const navHTML = ({ search = false } = {}) => `
 <nav><div class="wrap">
@@ -241,6 +260,7 @@ const searchJS = `
   const tags = [...document.querySelectorAll('.tag')];
   const line = document.getElementById('resultline');
   let activeTag = null;
+  let stateFilter = 'all';
   function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
   function strip(el){return [...el.querySelectorAll('[data-text]')].map(s=>s.dataset.text).join(' ').toLowerCase();}
   function highlight(el, terms){
@@ -271,7 +291,8 @@ const searchJS = `
       const hay = strip(c);
       const okQ = !terms.length || terms.every(t => hay.includes(t));
       const okT = !activeTag || (c.dataset.tags||'').split('|').includes(activeTag);
-      const vis = okQ && okT;
+      const okS = stateFilter === 'all' || (c.dataset.state||'') === stateFilter;
+      const vis = okQ && okT && okS;
       c.style.display = vis ? '' : 'none';
       if (vis){
         shown++;
@@ -280,7 +301,7 @@ const searchJS = `
         if (terms.length) c.querySelectorAll('[data-text]').forEach(sp => highlight(sp, terms));
       }
     }
-    if (line) line.textContent = terms.length || activeTag ? shown + ' of ' + cards.length + ' bugs match' : '';
+    if (line) line.textContent = terms.length || activeTag || stateFilter !== 'all' ? shown + ' of ' + cards.length + ' bugs match' : '';
     const e = document.getElementById('empty');
     if (e) e.style.display = shown ? 'none' : '';
   }
@@ -295,10 +316,24 @@ const searchJS = `
     if (ev.key === '/' && document.activeElement !== q){ ev.preventDefault(); q.focus(); }
     if (ev.key === 'Escape' && document.activeElement === q){ q.value=''; apply(); }
   });
+  // state filter chips
+  document.querySelectorAll('.statechip').forEach(chip => chip.addEventListener('click', () => {
+    stateFilter = chip.dataset.state;
+    document.querySelectorAll('.statechip').forEach(x => x.classList.toggle('on', x.dataset.state === stateFilter));
+    apply();
+  }));
 `;
 
 // ---- index page ------------------------------------------------------------
 const allTags = [...new Set(issuesWithMeta.flatMap((i) => i.tags))].sort();
+const openCount = issuesWithMeta.filter((i) => i.state === "open").length;
+const closedCount = issuesWithMeta.length - openCount;
+const stateChips = `
+  <div class="tagrow" id="staterow">
+    <button class="tag statechip on" data-state="all">All (${issuesWithMeta.length})</button>
+    <button class="tag statechip" data-state="open">Open (${openCount})</button>
+    <button class="tag statechip" data-state="closed">Closed (${closedCount})</button>
+  </div>`;
 const tagChips = allTags.length
   ? `<div class="tagrow">${allTags.map((t) => `<button class="tag" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</div>`
   : "";
@@ -309,7 +344,7 @@ const issueCard = (i) => {
     `<span class="${cls}" data-text="${esc(text)}">${esc(text)}</span>`;
   const description = field(i.body, "Explica el error", "Explain the bug", "Describe the bug") || "";
   return `
-  <article class="issue" data-tags="${esc(i.tags.join("|"))}">
+  <article class="issue" data-tags="${esc(i.tags.join("|"))}" data-state="${i.state}">
     <a class="cardlink" href="/issues/${i.number}.html" aria-label="Open bug #${i.number}"></a>
     <div class="issue-top">
       ${searchable("num", `#${i.number}`)}
@@ -345,7 +380,12 @@ ${navHTML({ search: true })}
 
 <section id="bugs" style="padding-top:48px">
   <div class="wrap">
+    <div class="banners">
+      <a class="banner" href="${REPO_URL}/issues/new?template=bug_report.yml">${ghIcon}<span>Found a bug? <b>Report it on GitHub</b> — it appears here automatically</span></a>
+      <a class="banner" href="${REPO_URL}">${chatIcon}<span>Have details to add? <b>Comment on the bug's thread on GitHub</b></span></a>
+    </div>
     <div class="resultline" id="resultline"></div>
+    ${stateChips}
     ${tagChips}
     ${cards}
   </div>
@@ -385,7 +425,7 @@ const issuePage = (i) => {
 <main>
 ${navHTML()}
 <div class="wrap" style="padding-top:40px">
-  <div class="crumb"><a href="/">← All bugs</a></div>
+  <div class="crumb"><a class="back" href="/">${arrowLeft}<span>All bugs</span></a></div>
   <div class="bug-head">
     <h2>#${i.number} · ${esc(i.title)}</h2>
     <div class="badges">
