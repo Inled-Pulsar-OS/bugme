@@ -63,6 +63,9 @@ function searchBlob(issue) {
     .join(" ")
     .toLowerCase();
 }
+// Closed issues are announced on Discord and removed from the public tracker.
+issues = issues.filter((i) => i.state === "open");
+
 const issuesWithMeta = issues.map((i) => ({ ...i, sev: severityOf(i), version: versionOf(i), tags: tagsOf(i), blob: searchBlob(i) }));
 const commentsKey = (n) => comments[n] ?? comments[String(n)] ?? [];
 

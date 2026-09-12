@@ -1,0 +1,61 @@
+name: Notify Discord on issue closed
+
+on:
+  issues:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number to announce as closed"
+        required: true
+
+permissions:
+  issues: read
+
+jobs:
+  discord:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve issue number
+        run: |
+          if [ "${{ github.event_name }}" = "issues" ]; then
+            echo "ISSUE_NUMBER=${{ github.event.issue.number }}" >> "$GITHUB_ENV"
+          else
+            echo "ISSUE_NUMBER=${{ inputs.issue_number }}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Fetch issue payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/issues/$ISSUE_NUMBER" > issue.json
+
+      - name: Send closure notice to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          cat > closed.mjs <<'EOF'
+          import { readFileSync } from "node:fs";
+          const issue = JSON.parse(readFileSync("issue.json", "utf8"));
+          const res = await fetch(process.env.WEBHOOK, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: "bugme",
+              embeds: [{
+                title: `✅ Closed #${issue.number} — ${issue.title}`,
+                url: issue.html_url,
+                color: 3066993,
+                author: { name: issue.closed_by?.login ?? issue.user.login, icon_url: issue.closed_by?.avatar_url ?? issue.user.avatar_url },
+                description: "This bug has been closed. It will disappear from the public tracker on the next site rebuild.",
+                footer: { text: "Pulsar OS · bugme tracker" },
+              }],
+            }),
+          });
+          if (!res.ok) {
+            console.error("Discord error", res.status, await res.text());
+            process.exit(1);
+          }
+          console.log("Closure sent to Discord ✓");
+          EOF
+          node closed.mjs
