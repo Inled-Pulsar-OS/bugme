@@ -166,7 +166,9 @@ const CSS = `
   .banner:hover{border-color:var(--blue);text-decoration:none;background:#fff}
   .banner svg{color:var(--blue);flex:none}
   .banner b{font-weight:600}
-  .banner.issue-banner{margin-bottom:14px;width:100%;box-sizing:border-box}
+  .banner.issue-banner{margin:22px 0;width:100%;box-sizing:border-box}
+  .thread .banner.issue-banner{margin:12px 0 0}
+  .thread{margin-bottom:26px}
   .back{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:#fff;border-radius:980px;
     padding:10px 20px;font-size:15px;font-weight:600;color:var(--ink);transition:border-color .15s,color .15s}
   .back:hover{border-color:var(--blue);color:var(--blue);text-decoration:none}
