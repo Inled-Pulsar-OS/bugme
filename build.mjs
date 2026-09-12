@@ -143,12 +143,12 @@ const CSS = `
   .tagline{color:var(--muted);font-size:13px;display:none}
   @media (min-width:760px){.tagline{display:block;margin-left:14px}}
   .searchbar{flex:0 1 300px;position:relative;margin:0 12px}
-  .searchbar input{width:100%;border:1px solid var(--border);border-radius:980px;padding:7px 12px 7px 34px;
-       font-size:13px;outline:none;background:#fff;transition:box-shadow .15s}
+  .searchbar input{width:100%;border:1px solid var(--border);border-radius:980px;padding:3px 12px 3px 30px;
+       font-size:12px;outline:none;background:#fff;height:26px;transition:box-shadow .15s}
   .searchbar input:focus{box-shadow:0 0 0 3px rgba(0,113,227,.25);border-color:var(--blue)}
-  .searchbar svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
-  .searchbar .clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:none;
-       color:var(--muted);font-size:11px;cursor:pointer;padding:4px 8px;border-radius:980px}
+  .searchbar svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;width:12px;height:12px}
+  .searchbar .clear{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:none;background:none;
+       color:var(--muted);font-size:10px;cursor:pointer;padding:2px 6px;border-radius:980px;line-height:1}
   .searchbar .clear:hover{color:var(--ink);background:var(--tint)}
   .btn{display:inline-block;border-radius:980px;padding:11px 22px;font-size:16px;min-height:44px;line-height:22px;margin:0 6px}
   .btn.primary{background:var(--blue);color:#fff}.btn.primary:hover{background:var(--blue-h);text-decoration:none}
@@ -169,8 +169,9 @@ const CSS = `
   .tag{border:1px solid var(--border);background:#fff;border-radius:980px;padding:6px 14px;font-size:13px;color:var(--ink);cursor:pointer;user-select:none;font-family:inherit}
   .tag:hover{border-color:var(--blue);color:var(--blue)}
   .tag.on{background:var(--blue);border-color:var(--blue);color:#fff}
-  .issue{background:var(--tint);border-radius:var(--radius);padding:24px 26px;margin-bottom:14px;transition:transform .15s}
+  .issue{background:var(--tint);border-radius:var(--radius);padding:24px 26px;margin-bottom:14px;transition:transform .15s;cursor:pointer;position:relative}
   .issue:hover{transform:translateY(-2px)}
+  .issue .cardlink{position:absolute;inset:0;z-index:1}
   .issue-top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
   .issue .num{color:var(--muted);font-variant-numeric:tabular-nums;font-size:14px}
   .issue h3{font-size:19px;font-weight:600;flex:1 1 300px}
@@ -233,7 +234,7 @@ const searchJS = `
   const line = document.getElementById('resultline');
   let activeTag = null;
   function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-  function strip(el){return ((el.dataset.search||'') + ' ' + [...el.querySelectorAll('[data-text]')].map(s=>s.dataset.text).join(' ')).toLowerCase();}
+  function strip(el){return [...el.querySelectorAll('[data-text]')].map(s=>s.dataset.text).join(' ').toLowerCase();}
   function highlight(el, terms){
     // walk text nodes and wrap matches in <mark>
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -299,8 +300,10 @@ const issueCard = (i) => {
   const cs = commentsKey(i.number);
   const searchable = (cls, text) =>
     `<span class="${cls}" data-text="${esc(text)}">${esc(text)}</span>`;
+  const description = field(i.body, "Explica el error", "Explain the bug", "Describe the bug") || "";
   return `
-  <article class="issue" data-search="${esc(i.blob)}" data-tags="${esc(i.tags.join("|"))}">
+  <article class="issue" data-tags="${esc(i.tags.join("|"))}">
+    <a class="cardlink" href="/issues/${i.number}.html" aria-label="Open bug #${i.number}"></a>
     <div class="issue-top">
       ${searchable("num", `#${i.number}`)}
       <h3>${searchable("t", i.title)}</h3>
@@ -310,8 +313,9 @@ const issueCard = (i) => {
     <div class="meta">
       by ${searchable("u", i.user.login)}
       · ${searchable("d", fmtDate(i.created_at))} · Version: ${searchable("v", i.version)} · ${i.tags.map((t) => searchable("label", t)).join(" ")}
-      · <a href="/issues/${i.number}.html">${cs.length} comment${cs.length === 1 ? "" : "s"} →</a>
+      · <a href="/issues/${i.number}.html" style="position:relative;z-index:2">${cs.length} comment${cs.length === 1 ? "" : "s"} →</a>
     </div>
+    <span data-text="${esc(description)}" style="display:none"></span>
   </article>`;
 };
 
