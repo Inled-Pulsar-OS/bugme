@@ -9,17 +9,42 @@ body:
         Thanks for reporting a bug in **Pulsar OS**. The more information you provide, the faster we can fix it.
         Your report will automatically appear on the public **bugme** tracker once the site is rebuilt.
 
+        💡 **Not sure about your exact version?** Click **About Pulsar OS** in the top menu of your desktop and copy what it shows into "Exact version / build" below.
+
+  - type: dropdown
+    id: edition
+    attributes:
+      label: Edition
+      description: Which Pulsar OS edition are you running?
+      options:
+        - "Bittenfruit"
+        - "Other / older edition"
+    validations:
+      required: true
+
   - type: dropdown
     id: version
     attributes:
       label: Pulsar OS version
-      description: Which version/image are you using?
+      description: Which version are you running? (Versions come from the official downloads index)
       options:
-        - "pulsaros-stable-arch-refind.iso"
-        - "pulsaros-stable-debian-refind.iso"
-        - "stable (other image / live update)"
-        - "testing / nightly"
-        - "Built from source"
+        - "1.0-bittenfruit"
+        - "0.4-beta"
+        - "Other / unknown"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: image
+    attributes:
+      label: Image
+      description: Which image variant are you using?
+      options:
+        - "pulsaros-*-arch-refind.iso"
+        - "pulsaros-*-arch-grub.iso"
+        - "pulsaros-*-debian-refind.iso"
+        - "pulsaros-*-debian-grub.iso"
+        - "Other / built from source"
     validations:
       required: true
 
@@ -27,8 +52,8 @@ body:
     id: version_detail
     attributes:
       label: Exact version / build
-      description: Run `pulsar --version` or give the ISO date if you know it.
-      placeholder: "e.g. Pulsar OS 1.4.2, build 2026-09-01"
+      description: Click "About Pulsar OS" in the top menu of your desktop and paste what it shows.
+      placeholder: "e.g. Pulsar OS 1.0-bittenfruit"
 
   - type: textarea
     id: description
