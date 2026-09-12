@@ -166,6 +166,7 @@ const CSS = `
   .banner:hover{border-color:var(--blue);text-decoration:none;background:#fff}
   .banner svg{color:var(--blue);flex:none}
   .banner b{font-weight:600}
+  .banner.issue-banner{margin-bottom:14px;width:100%;box-sizing:border-box}
   .back{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:#fff;border-radius:980px;
     padding:10px 20px;font-size:15px;font-weight:600;color:var(--ink);transition:border-color .15s,color .15s}
   .back:hover{border-color:var(--blue);color:var(--blue);text-decoration:none}
@@ -361,9 +362,21 @@ const issueCard = (i) => {
   </article>`;
 };
 
+const bannerReport = `<a class="banner issue-banner" href="${REPO_URL}/issues/new?template=bug_report.yml">${ghIcon}<span>Found a bug? <b>Report it on GitHub</b> — it appears here automatically</span></a>`;
+const bannerComment = `<a class="banner issue-banner" href="${REPO_URL}">${chatIcon}<span>Have details to add? <b>Comment on the bug's thread on GitHub</b></span></a>`;
+
 const cards = issuesWithMeta.length
-  ? issuesWithMeta.map(issueCard).join("\n")
-  : `<p class="empty" id="empty">No bugs reported yet. Everything is running smoothly! ✨</p>`;
+  ? issuesWithMeta
+      .map((issue, idx) => {
+        let html = issueCard(issue);
+        // Interleave banners between cards: report banner after 1st, comment after 3rd, then repeat every 6
+        if (idx === 0) html += bannerReport;
+        else if (idx === 2) html += bannerComment;
+        else if (idx > 3 && (idx + 1) % 6 === 0) html += (idx % 2 === 0 ? bannerReport : bannerComment);
+        return html;
+      })
+      .join("\n")
+  : `<p class="empty" id="empty">No bugs reported yet. Everything is running smoothly! ✨</p>${bannerReport}`;
 
 const indexPage = `<!DOCTYPE html>
 <html lang="en">
@@ -380,10 +393,6 @@ ${navHTML({ search: true })}
 
 <section id="bugs" style="padding-top:48px">
   <div class="wrap">
-    <div class="banners">
-      <a class="banner" href="${REPO_URL}/issues/new?template=bug_report.yml">${ghIcon}<span>Found a bug? <b>Report it on GitHub</b> — it appears here automatically</span></a>
-      <a class="banner" href="${REPO_URL}">${chatIcon}<span>Have details to add? <b>Comment on the bug's thread on GitHub</b></span></a>
-    </div>
     <div class="resultline" id="resultline"></div>
     ${stateChips}
     ${tagChips}
@@ -400,7 +409,7 @@ ${footerHTML}
 const issuePage = (i) => {
   const cs = commentsKey(i.number);
   const thread = cs.length
-    ? `<div class="thread"><h3>Discussion (${cs.length})</h3>${cs.map((c) => `
+    ? `<div class="thread"><h3>Discussion (${cs.length})</h3>${cs.map((c, ci) => `
         <div class="comment">
           <div class="who">
             ${c.avatar ? `<img src="${esc(c.avatar)}" alt="" loading="lazy">` : ""}
@@ -409,8 +418,8 @@ const issuePage = (i) => {
           </div>
           <p>${esc(c.body)}</p>
           ${c.url ? `<a href="${esc(c.url)}" style="font-size:12px">View on GitHub ↗</a>` : ""}
-        </div>`).join("")}</div>`
-    : `<p class="empty">No comments yet.</p>`;
+        </div>${ci === 0 ? bannerComment : ""}`).join("")}</div>`
+    : `<p class="empty">No comments yet.</p>${bannerComment}`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -445,6 +454,7 @@ ${navHTML()}
     ${field(i.body, "Información de debug", "Debug information") ? `<h4>Debug information</h4>${md(field(i.body, "Información de debug", "Debug information"))}` : ""}
     <a href="${esc(i.html_url)}">View and comment on GitHub →</a>
   </div>
+  ${bannerReport}
   ${thread}
 </div>
 ${footerHTML}
