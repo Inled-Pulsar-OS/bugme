@@ -1,0 +1,77 @@
+name: Bug report
+description: Reporta un error de Pulsar OS. Especifica la versión, explica el error y añade información de debug.
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por reportar un error en **Pulsar OS**. Cuanta más información des, más rápido lo arreglaremos.
+        Tu reporte aparecerá automáticamente en el tracker público de **bugme** cuando el sitio se regenere.
+
+  - type: dropdown
+    id: version
+    attributes:
+      label: Versión de Pulsar OS
+      description: ¿Qué versión/imagen estás usando?
+      options:
+        - "pulsaros-stable-arch-refind.iso"
+        - "pulsaros-stable-debian-refind.iso"
+        - "stable (otra imagen / actualización en vivo)"
+        - "testing / nightly"
+        - "Compilada desde el código fuente"
+      validations:
+        required: true
+
+  - type: input
+    id: version_detail
+    attributes:
+      label: Versión exacta / build
+      description: Ejecuta `pulsar --version` o indica la fecha del ISO si la conoces.
+      placeholder: "ej. Pulsar OS 1.4.2, build 2026-09-01"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Explica el error
+      description: Qué pasó, qué esperabas que pasara y cómo reproducirlo paso a paso.
+      placeholder: |
+        **Qué pasó:** ...
+        **Qué esperaba:** ...
+        **Pasos para reproducirlo:**
+        1. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: debug
+    attributes:
+      label: Información de debug
+      description: Logs, salidas de terminal, capturas de pantalla… todo ayuda.
+      placeholder: |
+        ```
+        $ journalctl -b -p err
+        ...
+        ```
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Gravedad
+      options:
+        - "Crítico — el sistema no arranca o pierde datos"
+        - "Grave — una función principal no funciona"
+        - "Moderado — molesta, pero hay alternativa"
+        - "Menor — cosmético o poco frecuente"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Comprobaciones
+      options:
+        - label: He comprobado que este bug no está ya reportado
+        - label: Uso la última versión estable disponible

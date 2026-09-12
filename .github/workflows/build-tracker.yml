@@ -1,0 +1,74 @@
+name: Rebuild bugme tracker
+
+on:
+  issues:
+    types: [opened, edited, closed, reopened, labeled]
+  issue_comment:
+    types: [created, edited]
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+
+permissions:
+  issues: read
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fetch issues and comments
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          mkdir -p data
+          gh api "repos/$REPO/issues?state=all&per_page=100&sort=created&direction=desc" \
+            --paginate -H "Accept: application/vnd.github+json" > raw-issues.json
+          node -e '
+          const fs = require("fs");
+          const issues = JSON.parse(fs.readFileSync("raw-issues.json", "utf8")).filter(i => !i.pull_request);
+          fs.writeFileSync("data/issues.json", JSON.stringify(issues, null, 2));
+          fs.writeFileSync("data/comments.json", "{}");
+          '
+          node -e '
+          const fs = require("fs");
+          const { execSync } = require("child_process");
+          const issues = JSON.parse(fs.readFileSync("data/issues.json", "utf8")).slice(0, 100);
+          const out = {};
+          for (const i of issues) {
+            const raw = execSync(`gh api "repos/${process.env.REPO}/issues/${i.number}/comments?per_page=100" --paginate`).toString();
+            out[i.number] = JSON.parse(raw).map(c => ({ user: c.user.login, avatar: c.user.avatar_url, body: c.body, created: c.created_at, url: c.html_url }));
+          }
+          fs.writeFileSync("data/comments.json", JSON.stringify(out, null, 2));
+          '
+
+      - name: Build site
+        run: node build.mjs
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

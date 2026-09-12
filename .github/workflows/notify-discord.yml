@@ -1,0 +1,44 @@
+name: Notify Discord on issue
+
+on:
+  issues:
+    types: [opened, reopened]
+
+permissions:
+  issues: read
+
+jobs:
+  discord:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send issue to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          node -e '
+          const issue = JSON.parse(process.argv[1]);
+          const sev = issue.body?.match(/### Gravedad\s*\n+([^\n]+)/)?.[1] ?? "sin clasificar";
+          const ver = issue.body?.match(/### Versi[oó]n de Pulsar OS\s*\n+([^\n]+)/)?.[1] ?? "desconocida";
+          const color = { "Crítico": 15158332, "Grave": 15105570, "Moderado": 15844367 }[sev.split(" ")[0]] ?? 3447003;
+          fetch(process.env.WEBHOOK, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: "bugme",
+              embeds: [{
+                title: `🐛 #${issue.number} — ${issue.title}`,
+                url: issue.html_url,
+                color,
+                author: { name: issue.user.login, icon_url: issue.user.avatar_url },
+                fields: [
+                  { name: "Versión", value: ver.slice(0, 200), inline: true },
+                  { name: "Gravedad", value: sev.slice(0, 200), inline: true },
+                  { name: "Descripción", value: (issue.body ?? "—").slice(0, 1000) }
+                ],
+                footer: { text: "Pulsar OS · bugme tracker" }
+              }]
+            })
+          }).then(r => { if (!r.ok) throw new Error("Discord " + r.status); });
+          ' "$ISSUE_JSON"
+        env:
+          ISSUE_JSON: ${{ toJSON(github.event.issue) }}
