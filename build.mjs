@@ -140,14 +140,20 @@ const CSS = `
   nav .wrap{display:flex;align-items:center;justify-content:space-between;height:52px}
   .brand{font-weight:600;font-size:19px;color:var(--ink)}
   .brand span{color:var(--blue)}
-  .hero{background:var(--tint);text-align:center;padding:100px 0 70px}
-  .hero h1{font-size:clamp(44px,7vw,72px);font-weight:700;letter-spacing:-.015em}
-  .hero h1 span{color:var(--blue)}
-  .hero p{font-size:clamp(19px,2.6vw,24px);color:var(--muted);margin:14px auto 30px;max-width:620px}
+  .tagline{color:var(--muted);font-size:13px;display:none}
+  @media (min-width:760px){.tagline{display:block;margin-left:14px}}
+  .searchbar{flex:0 1 300px;position:relative;margin:0 12px}
+  .searchbar input{width:100%;border:1px solid var(--border);border-radius:980px;padding:7px 12px 7px 34px;
+       font-size:13px;outline:none;background:#fff;transition:box-shadow .15s}
+  .searchbar input:focus{box-shadow:0 0 0 3px rgba(0,113,227,.25);border-color:var(--blue)}
+  .searchbar svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+  .searchbar .clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:none;
+       color:var(--muted);font-size:11px;cursor:pointer;padding:4px 8px;border-radius:980px}
+  .searchbar .clear:hover{color:var(--ink);background:var(--tint)}
   .btn{display:inline-block;border-radius:980px;padding:11px 22px;font-size:16px;min-height:44px;line-height:22px;margin:0 6px}
   .btn.primary{background:var(--blue);color:#fff}.btn.primary:hover{background:var(--blue-h);text-decoration:none}
   .btn.secondary{color:var(--blue);border:1px solid var(--blue)}.btn.secondary:hover{text-decoration:none;background:rgba(0,113,227,.06)}
-  .searchbar{max-width:560px;margin:36px auto 0;position:relative}
+  nav .btn{min-height:32px;padding:6px 16px;font-size:14px}
   .searchbar svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
   .searchbar input{width:100%;border:1px solid var(--border);border-radius:980px;padding:13px 88px 13px 44px;
        font-size:16px;outline:none;background:#fff;transition:box-shadow .15s}
@@ -194,13 +200,22 @@ const CSS = `
   .thread h3{font-size:22px;font-weight:700;margin:44px 0 4px}
   .empty{text-align:center;color:var(--muted);padding:40px 0;font-size:17px}
   footer{border-top:1px solid var(--border);padding:34px 0;color:var(--muted);font-size:13px;text-align:center;margin-top:auto}
-  @media (max-width:600px){.hero{padding:70px 0 50px}}
+  @media (max-width:600px){.searchbar{flex-basis:200px}}
 `;
 
-const navHTML = () => `
+const navHTML = ({ search = false } = {}) => `
 <nav><div class="wrap">
-  <a class="brand" href="/">bug<span>me</span></a>
-  <a class="btn secondary" style="min-height:32px;padding:6px 16px;font-size:14px" href="${REPO_URL}/issues/new?template=bug_report.yml">Report a bug</a>
+  <div style="display:flex;align-items:center">
+    <a class="brand" href="/">bug<span>me</span></a>
+    <span class="tagline">Report and track Pulsar OS bugs here</span>
+  </div>
+  ${search ? `
+  <div class="searchbar">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input id="q" type="search" placeholder="Search bugs… (press /)" autocomplete="off">
+    <button class="clear" id="clear" type="button">Clear</button>
+  </div>` : ""}
+  <a class="btn secondary" href="${REPO_URL}/issues/new?template=bug_report.yml">Report a bug</a>
 </div></nav>`;
 
 const footerHTML = `
@@ -218,7 +233,7 @@ const searchJS = `
   const line = document.getElementById('resultline');
   let activeTag = null;
   function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-  function strip(el){return (el.dataset.text||'').toLowerCase();}
+  function strip(el){return ((el.dataset.search||'') + ' ' + [...el.querySelectorAll('[data-text]')].map(s=>s.dataset.text).join(' ')).toLowerCase();}
   function highlight(el, terms){
     // walk text nodes and wrap matches in <mark>
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -315,27 +330,12 @@ const indexPage = `<!DOCTYPE html>
 </head>
 <body>
 <main>
-${navHTML()}
-<header class="hero">
-  <h1>bug<span>me</span></h1>
-  <p>Every Pulsar OS bug — reported, tracked and discussed in one place.</p>
-  <div>
-    <a class="btn primary" href="${REPO_URL}/issues/new?template=bug_report.yml">Report a bug</a>
-    <a class="btn secondary" href="#bugs">Browse bugs</a>
-  </div>
-  <div class="searchbar">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-    <input id="q" type="search" placeholder="Search bugs — try 'suspend' or '1.0-bittenfruit' (press / to focus)" autocomplete="off">
-    <button class="clear" id="clear" type="button">Clear</button>
-  </div>
-</header>
+${navHTML({ search: true })}
 
-<section id="bugs">
-  <h2>All bugs</h2>
-  <p class="sub">Search or filter by tag, then open a bug for the full report, debug info and discussion thread.</p>
-  <div class="resultline" id="resultline"></div>
-  ${tagChips}
+<section id="bugs" style="padding-top:48px">
   <div class="wrap">
+    <div class="resultline" id="resultline"></div>
+    ${tagChips}
     ${cards}
   </div>
 </section>
