@@ -3,6 +3,11 @@ name: Notify Discord on issue
 on:
   issues:
     types: [opened, reopened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number to send to Discord"
+        required: true
 
 permissions:
   issues: read
@@ -11,34 +16,55 @@ jobs:
   discord:
     runs-on: ubuntu-latest
     steps:
-      - name: Send issue to Discord
+      - name: Resolve issue number
+        run: |
+          if [ "${{ github.event_name }}" = "issues" ]; then
+            echo "ISSUE_NUMBER=${{ github.event.issue.number }}" >> "$GITHUB_ENV"
+          else
+            echo "ISSUE_NUMBER=${{ inputs.issue_number }}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Fetch issue payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/issues/$ISSUE_NUMBER" > issue.json
+
+      - name: Send to Discord
         env:
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          node -e '
-          const issue = JSON.parse(process.argv[1]);
-          const sev = issue.body?.match(/### Severity\s*\n+([^\n]+)/)?.[1] ?? "unclassified";
-          const ver = issue.body?.match(/### Pulsar OS version\s*\n+([^\n]+)/)?.[1] ?? "unknown";
-          const color = { "Critical": 15158332, "Major": 15105570, "Moderate": 15844367, "Minor": 3066993 }[sev.split(" ")[0]] ?? 3447003;
-          fetch(process.env.WEBHOOK, {
+          cat > notify.mjs <<'EOF'
+          import { readFileSync } from "node:fs";
+          const issue = JSON.parse(readFileSync("issue.json", "utf8"));
+          const pick = (re) => issue.body?.match(re)?.[1] ?? "";
+          const sev = pick(/### Severity\s*\n+([^\n]+)/) || "unclassified";
+          const ver = pick(/### Pulsar OS version\s*\n+([^\n]+)/) || "unknown";
+          const colors = { Critical: 15158332, Major: 15105570, Moderate: 15844367, Minor: 3066993 };
+          const color = colors[sev.split(" ")[0]] ?? 3447003;
+          const res = await fetch(process.env.WEBHOOK, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               username: "bugme",
               embeds: [{
-                title: `🐛 #${issue.number} — ${issue.title}`,
+                title: `#${issue.number} — ${issue.title}`,
                 url: issue.html_url,
                 color,
                 author: { name: issue.user.login, icon_url: issue.user.avatar_url },
                 fields: [
                   { name: "Version", value: ver.slice(0, 200), inline: true },
                   { name: "Severity", value: sev.slice(0, 200), inline: true },
-                  { name: "Description", value: (issue.body ?? "—").slice(0, 1000) }
+                  { name: "Description", value: (issue.body ?? "—").slice(0, 1000) },
                 ],
-                footer: { text: "Pulsar OS · bugme tracker" }
-              }]
-            })
-          }).then(r => { if (!r.ok) throw new Error("Discord " + r.status); });
-          ' "$ISSUE_JSON"
-        env:
-          ISSUE_JSON: ${{ toJSON(github.event.issue) }}
+                footer: { text: "Pulsar OS · bugme tracker" },
+              }],
+            }),
+          });
+          if (!res.ok) {
+            console.error("Discord error", res.status, await res.text());
+            process.exit(1);
+          }
+          console.log("Sent to Discord ✓");
+          EOF
+          node notify.mjs
