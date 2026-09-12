@@ -147,20 +147,10 @@ const CSS = `
        font-size:12px;outline:none;background:#fff;height:26px;transition:box-shadow .15s}
   .searchbar input:focus{box-shadow:0 0 0 3px rgba(0,113,227,.25);border-color:var(--blue)}
   .searchbar svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;width:12px;height:12px}
-  .searchbar .clear{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:none;background:none;
-       color:var(--muted);font-size:10px;cursor:pointer;padding:2px 6px;border-radius:980px;line-height:1}
-  .searchbar .clear:hover{color:var(--ink);background:var(--tint)}
   .btn{display:inline-block;border-radius:980px;padding:11px 22px;font-size:16px;min-height:44px;line-height:22px;margin:0 6px}
   .btn.primary{background:var(--blue);color:#fff}.btn.primary:hover{background:var(--blue-h);text-decoration:none}
   .btn.secondary{color:var(--blue);border:1px solid var(--blue)}.btn.secondary:hover{text-decoration:none;background:rgba(0,113,227,.06)}
   nav .btn{min-height:32px;padding:6px 16px;font-size:14px}
-  .searchbar svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
-  .searchbar input{width:100%;border:1px solid var(--border);border-radius:980px;padding:13px 88px 13px 44px;
-       font-size:16px;outline:none;background:#fff;transition:box-shadow .15s}
-  .searchbar input:focus{box-shadow:0 0 0 4px rgba(0,113,227,.25);border-color:var(--blue)}
-  .searchbar .clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:none;
-       color:var(--muted);font-size:13px;cursor:pointer;padding:6px 10px;border-radius:980px}
-  .searchbar .clear:hover{color:var(--ink);background:var(--tint)}
   section{padding:70px 0}
   section h2{font-size:clamp(30px,4vw,44px);font-weight:700;text-align:center;letter-spacing:-.01em}
   section>p.sub{text-align:center;color:var(--muted);font-size:19px;margin:10px 0 40px}
@@ -201,7 +191,26 @@ const CSS = `
   .thread h3{font-size:22px;font-weight:700;margin:44px 0 4px}
   .empty{text-align:center;color:var(--muted);padding:40px 0;font-size:17px}
   footer{border-top:1px solid var(--border);padding:34px 0;color:var(--muted);font-size:13px;text-align:center;margin-top:auto}
-  @media (max-width:600px){.searchbar{flex-basis:200px}}
+
+  /* Mobile */
+  @media (max-width:640px){
+    nav .wrap{height:auto;padding:10px 0;flex-wrap:wrap;gap:10px;justify-content:center}
+    nav .wrap > div{width:100%;justify-content:center}
+    .searchbar{flex:1 1 100%;order:3;margin:0}
+    nav .btn{margin:0}
+    .wrap{padding:0 16px}
+    section{padding:44px 0}
+    section h2{font-size:30px}
+    .tagrow{margin-bottom:22px}
+    .tag{padding:8px 16px;font-size:14px}
+    .issue{padding:18px 18px}
+    .issue h3{font-size:17px;flex-basis:100%}
+    .issue .meta{font-size:12px;line-height:1.6}
+    .resultline{margin:0 0 18px}
+    .bug-body{padding:20px}
+    .bug-head h2{font-size:24px}
+    .thread h3{font-size:19px}
+  }
 `;
 
 const navHTML = ({ search = false } = {}) => `
@@ -214,7 +223,6 @@ const navHTML = ({ search = false } = {}) => `
   <div class="searchbar">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
     <input id="q" type="search" placeholder="Search bugs… (press /)" autocomplete="off">
-    <button class="clear" id="clear" type="button">Clear</button>
   </div>` : ""}
   <a class="btn secondary" href="${REPO_URL}/issues/new?template=bug_report.yml">Report a bug</a>
 </div></nav>`;
@@ -277,7 +285,6 @@ const searchJS = `
     if (e) e.style.display = shown ? 'none' : '';
   }
   q.addEventListener('input', apply);
-  document.getElementById('clear')?.addEventListener('click', () => { q.value=''; apply(); q.focus(); });
   tags.forEach(t => t.addEventListener('click', () => {
     activeTag = activeTag === t.dataset.tag ? null : t.dataset.tag;
     tags.forEach(x => x.classList.toggle('on', x.dataset.tag === activeTag));
