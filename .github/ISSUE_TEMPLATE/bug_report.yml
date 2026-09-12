@@ -20,8 +20,8 @@ body:
         - "stable (other image / live update)"
         - "testing / nightly"
         - "Built from source"
-      validations:
-        required: true
+    validations:
+      required: true
 
   - type: input
     id: version_detail
